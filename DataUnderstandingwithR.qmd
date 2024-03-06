@@ -1,66 +1,66 @@
 ---
 title: "Data Understanding"
-format: html
+format: docx
 editor: visual
 ---
 
 Adding to the foundation of Business Understanding, the Data Understanding phase focuses on identifying, collecting, and analyzing data sets that can help the project. This phase also has four tasks:
 
-See table with variables and further information!
+See *Variables Overview.xlsx* for further information!
 
-## Collect initial data: Acquire the necessary data and (if necessary) load it into your analysis tool.
+1.  Collect initial data: Acquire the necessary data and (if necessary) load it into your analysis tool.
 
-**Data overview**
+    **Data overview**
 
-```{r}
-# Load  dataset with  separator ";", a header and empty cells recognized as NAs
-data <- read.csv("marketing.csv", sep = ";", header = TRUE, na.strings = "")
+    ```{r}
+    # Load  dataset with  separator ";", a header and empty cells recognized as NAs
+    data <- read.csv("marketing.csv", sep = ";", header = TRUE, na.strings = "")
 
-# Check the data set------------------------------------------------------------
-head(data) # Displays the first lines of the data set
-str(data) # Outputs a summary of the data structure
-nrow(data) # cross checking number or rows
-```
+    # Check the data set------------------------------------------------------------
+    head(data) # Displays the first lines of the data set
+    str(data) # Outputs a summary of the data structure
+    nrow(data) # cross checking number or rows
+    ```
 
--\>17 variables (columns) and 41’188 observations (rows)
+    -\>17 variables (columns) and 41’188 observations (rows)
 
--\> Types: chr, int, and num
+    -\> Types: chr, int, and num
 
-**Missing values (NAs)**
+    **Missing values (NAs)**
 
-***Variable Balance is not in the dataset !***
+    ***Variable Balance is not in the dataset !***
 
-```{r}
-# Determine the number of missing values for each variable----------------------
-missing_values <- sapply(data, function(x) sum(is.na(x)))
-missing_values # Show the number of missing values for each variable
-```
+    ```{r}
+    # Determine the number of missing values for each variable----------------------
+    missing_values <- sapply(data, function(x) sum(is.na(x)))
+    missing_values # Show the number of missing values for each variable
+    ```
 
-**Relationships between variables:** previous = 0 & poutcome = nonexistent
+    **Relationships between variables:** previous = 0 & poutcome = nonexistent
 
-```{r}
-# Relationship between previous = 0 & poutcome = nonexistent--------------------
-# Number of previous = 0
-count_previous_0 <- sum(data$previous == 0) 
-count_previous_0
+    ```{r}
+    # Relationship between previous = 0 & poutcome = nonexistent--------------------
+    # Number of previous = 0
+    count_previous_0 <- sum(data$previous == 0) 
+    count_previous_0
 
-# Number of poutcome ="nonexistent"
-count_poutcome_nonexistent <- sum(data$poutcome == "nonexistent") 
-count_poutcome_nonexistent
+    # Number of poutcome ="nonexistent"
+    count_poutcome_nonexistent <- sum(data$poutcome == "nonexistent") 
+    count_poutcome_nonexistent
 
-# Number of previous = 0 & poutcome = "nonexistent" at the same time
-count <- sum(data$poutcome[data$previous == 0] == "nonexistent") 
-count
+    # Number of previous = 0 & poutcome = "nonexistent" at the same time
+    count <- sum(data$poutcome[data$previous == 0] == "nonexistent") 
+    count
 
-# check if relationship is true (all numbers are equal)
-realtionship <- (count_previous_0 == count_poutcome_nonexistent) && +
-  (count_previous_0 == count) && (count_poutcome_nonexistent == count)
-realtionship
-```
+    # check if relationship is true (all numbers are equal)
+    realtionship <- (count_previous_0 == count_poutcome_nonexistent) && +
+      (count_previous_0 == count) && (count_poutcome_nonexistent == count)
+    realtionship
+    ```
 
-1.  Describe data: Examine the data and document its surface properties like data format, number of records, or field identities.
+2.  Describe data: Examine the data and document its surface properties like data format, number of records, or field identities.
 
-    See table with variables and further information!
+    See *Variables Overview.xlsx* for further information!
 
     **Statistical Analysis**
 
@@ -101,6 +101,6 @@ realtionship
     unique_data
     ```
 
-2.  Explore data: Dig deeper into the data. Query it, visualize it, and identify relationships among the data.
+3.  Explore data: Dig deeper into the data. Query it, visualize it, and identify relationships among the data.
 
-3.  Verify data quality: How clean/dirty is the data? Document any quality issues.
+4.  Verify data quality: How clean/dirty is the data? Document any quality issues.
