@@ -5,6 +5,7 @@ prefer-html: true
 toc: true
 toc-depth: 5
 editor: visual
+warning: false
 ---
 
 Adding to the foundation of Business Understanding, the Data Understanding phase focuses on identifying, collecting, and analyzing data sets that can help the project. This phase also has four tasks:
@@ -334,7 +335,7 @@ Observe that the dataset predicted outcome (y) is skewed towards ‘no’ with o
 prop.table(table(data$y))
 ```
 
-### **Relationships between variables:** 
+### **Relationships between variables:**
 
 #### previous & poutcome
 
