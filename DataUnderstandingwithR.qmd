@@ -1,6 +1,9 @@
 ---
 title: "Data Understanding"
 format: docx
+prefer-html: true
+toc: true
+toc-depth: 5
 editor: visual
 ---
 
@@ -8,99 +11,518 @@ Adding to the foundation of Business Understanding, the Data Understanding phase
 
 See *Variables Overview.xlsx* for further information!
 
-1.  Collect initial data: Acquire the necessary data and (if necessary) load it into your analysis tool.
+```{r}
+# load libraries, that might be needed
+library(knitr)      # web widget
+library(tidyverse)  # data manipulation
+library(data.table) # fast file reading
+library(caret)      # rocr analysis
+library(ROCR)       # rocr analysis
+library(kableExtra) # nice table html formating 
+library(gridExtra)  # arranging ggplot in grid
+library(rpart)      # decision tree
+library(rpart.plot) # decision tree plotting
+library(caTools)    # split 
+```
 
-    **Data overview**
+## 1. Collect initial data: Acquire the necessary data and (if necessary) load it into your analysis tool.
 
-    ```{r}
-    # Load  dataset with  separator ";", a header and empty cells recognized as NAs
-    data <- read.csv("marketing.csv", sep = ";", header = TRUE, na.strings = "")
+### **Data overview**
 
-    # Check the data set------------------------------------------------------------
-    head(data) # Displays the first lines of the data set
-    str(data) # Outputs a summary of the data structure
-    nrow(data) # cross checking number or rows
-    ```
+```{r}
+# Load  dataset with  separator ";", a header and empty cells recognized as NAs
+data <- read.csv("marketing.csv", sep = ";", header = TRUE, na.strings = "")
 
-    -\>17 variables (columns) and 41’188 observations (rows)
+# Check the data set
+names(data) # Displays names of attributes
+head(data) # Displays the first lines of the data set
+str(data) # Outputs a summary of the data structure
+nrow(data) # cross checking number or rows
+dim(data) # cross checking the dimension
+```
 
-    -\> Types: chr, int, and num
+### Missing Variables
 
-    **Missing values (NAs)**
+Variable Balance is not in the dataset !
 
-    ***Variable Balance is not in the dataset !***
+### **Check for Duplicate Rows**
 
-    ```{r}
-    # Determine the number of missing values for each variable----------------------
-    missing_values <- sapply(data, function(x) sum(is.na(x)))
-    missing_values # Show the number of missing values for each variable
-    ```
+```{r}
+# Check for Duplicate Rows
+sum(duplicated(data))
+```
 
-    **Relationships between variables:** previous = 0 & poutcome = nonexistent
+### **Missing values (NAs)**
 
-    ```{r}
-    # Relationship between previous = 0 & poutcome = nonexistent--------------------
-    # Number of previous = 0
-    count_previous_0 <- sum(data$previous == 0) 
-    count_previous_0
+```{r}
+# How many rows have missing data
+sum(!complete.cases(data))
 
-    # Number of poutcome ="nonexistent"
-    count_poutcome_nonexistent <- sum(data$poutcome == "nonexistent") 
-    count_poutcome_nonexistent
+# How Many Rows Are Completely Missing Values In All Columns
+all.empty = rowSums(is.na(data))==ncol(data)
+sum(all.empty)
 
-    # Number of previous = 0 & poutcome = "nonexistent" at the same time
-    count <- sum(data$poutcome[data$previous == 0] == "nonexistent") 
-    count
+# Determine the number of missing values for each variable
+missing_values <- sapply(data, function(x) sum(is.na(x)))
+missing_values # Show the number of missing values for each variable
+```
 
-    # check if relationship is true (all numbers are equal)
-    realtionship <- (count_previous_0 == count_poutcome_nonexistent) && +
-      (count_previous_0 == count) && (count_poutcome_nonexistent == count)
-    realtionship
-    ```
+## 2 Describe data: Examine the data and document its surface properties like data format, number of records, or field identities.
 
-2.  Describe data: Examine the data and document its surface properties like data format, number of records, or field identities.
+See *Variables Overview.xlsx* for further information!
 
-    See *Variables Overview.xlsx* for further information!
+### **Statistical Analysis**
 
-    **Statistical Analysis**
+#### **of numeric variables**
 
-    **of numeric variables**
+```{r}
+# statistical analysis of the data
+# statistical Summary of numeric variables
+summary_numeric <- summary(data[, sapply(data, is.numeric)]) 
+summary_numeric
 
-    ```{r}
-    # statistical analysis of the data----------------------------------------------
-    # statistical Summary of numeric variables
-    summary_numeric <- summary(data[, sapply(data, is.numeric)]) 
-    summary_numeric
+# standard deviation of of numeric variables
+sd_numeric <- sapply(data[, sapply(data, is.numeric)], sd)
+sd_numeric
+```
 
-    # standard deviation of of numeric variables
-    sd_numeric <- sapply(data[, sapply(data, is.numeric)], sd)
-    sd_numeric
-    ```
+#### **of discrete** **numeric variables (integers)**
 
-    **of discrete** **numeric variables (integers)**
+```{r}
+# Frequency of the individual values for discrete numeric variables (integers)
+frequency_int_data <- lapply(data[, sapply(data, is.integer)], table)
+frequency_int_data
 
-    ```{r}
-    # Frequency of the individual values for discrete numeric variables (integers)
-    frequency_int_data <- lapply(data[, sapply(data, is.integer)], table)
-    frequency_int_data
+# Unique values for discrete numeric variables (integers)
+unique_int_values <- sapply(data[, sapply(data, is.integer)], unique)
+unique_int_values
+```
 
-    # Unique values for discrete numeric variables (integers)
-    unique_int_values <- sapply(data[, sapply(data, is.integer)], unique)
-    unique_int_values
-    ```
+#### **of non-numeric variables**
 
-    **of non-numeric variables**
+```{r}
+# Frequency of individual categories for non-numeric variables including NA
+frequency_data <- lapply(data[, sapply(data, is.character)], function(x) table(x, useNA = "always"))
+frequency_data
 
-    ```{r}
-    # Frequency of individual categories for non-numeric variables including NA
-    frequency_data <- lapply(data[, sapply(data, is.character)], function(x) table(x, useNA = "always"))
-    frequency_data
+# Number of unique values for non-numeric variables
+unique_data <- sapply(data[, sapply(data, is.character)], function(x) length(unique(x)))
+unique_data
+```
 
-    # Number of unique values for non-numeric variables
-    unique_data <- sapply(data[, sapply(data, is.character)], function(x) length(unique(x)))
-    unique_data
-    ```
+## 3. Explore data: Dig deeper into the data. Query it, visualize it, and identify relationships among the data.
 
-3.  Explore data: Dig deeper into the data. Query it, visualize it, and identify relationships among the data.
+### **Visualizations**
 
-4.  Verify data quality: How clean/dirty is the data? Document any quality issues.
+**Histograms**: Visualize the distribution of numeric variables.
+
+-   **Density:** Density scales the height of the bars based on the relative frequency of data within each bin. It's useful for comparing the shape of distributions across different datasets or variables, independent of the number of observations or bin width.
+
+-   **Frequency:** Frequency displays the absolute number of observations in each bin. It's useful for understanding the exact count of observations in specific areas of the distribution, particularly for identifying outliers or regions with unusually high or low frequencies.
+
+#### **AGE**
+
+```{r}
+# stattistical summary of Age
+summary(data$age)
+
+# Histogram count of Ages
+gg = ggplot (data) 
+p1 = gg + geom_histogram(aes(x=age),color="black", fill="white", binwidth = 5) +
+  ggtitle('Age Distribution (red mean line)') +
+  ylab('Count') +
+  xlab('Age') +
+  geom_vline(aes(xintercept = mean(age), color = "red")) +
+  scale_x_continuous(breaks = seq(0,100,5)) +
+  theme(legend.position = "none")
+p1
+```
+
+```{r}
+# Histogram y = Frequency, x = Age
+hist(data$age, main = "Histogram of Age", xlab = "Age", breaks = unique(data$age), freq = TRUE)
+
+# Histogram y = Density, x = Age
+hist(data$age, main = "Histogram of Age", xlab = "Age", breaks = unique(data$age), freq = FALSE)
+
+# Boxplot for Age
+boxplot(data$age, horizontal = TRUE, main = "Boxplot of Age", xlab = "Age")
+```
+
+#### **JOB**
+
+```{r}
+# Define Categories (so emtpy gets shown as unknown)
+categories_job <- c('admin.', 'blue-collar', 'entrepreneur', 'housemaid', 'management', 'retired', 'self-employed', 'services', 'student', 'technician', 'unemployed', 'unknown')
+
+# Barplot for Job Categories
+barplot(table(data$job, useNA = "always"), main = "Barplot of Job Categories", xlab = "Job Category", ylab = "Frequency", las = 2, cex.names = 0.75, names.arg = categories_job, mgp = c(3, 1, 0))
+```
+
+#### **MARITAL**
+
+```{r}
+# Define Categories (so emtpy gets shown as unknown)
+categories_marital <- c('divorced', 'married', 'single', 'unknown')
+
+# Barplot for Marital Status
+barplot(table(data$marital, useNA = "always"), main = "Barplot of Marital Status", xlab = "Marital Status", ylab = "Frequency", las = 2, cex.names = 0.75, names.arg = categories_marital, mgp = c(3, 1, 0))
+
+```
+
+#### **EDUCATION**
+
+```{r}
+# Define Categories (so emtpy gets shown as unknown)
+categories_education <- c('illiterate', 'basic.4y', 'basic.y', 'basic.9y', 'high.school', 'professional.course', 'university.degree', 'unknown')
+
+# Barplot for Education Level
+barplot(table(data$education, useNA = "always"), main = "Barplot of Education Level", xlab = "Education Level", ylab = "Frequency", las = 2, cex.names = 0.75, names.arg = categories_education, mgp = c(3, 1, 0))
+```
+
+#### **DEFAULT**
+
+```{r}
+# Define Categories (so emtpy gets shown as unknown)
+categories_default <- c('yes', 'no', 'unknown')
+
+# Barplot for Credit in Default
+barplot(table(data$default, useNA = "always"), main = "Barplot of Credit in Default", xlab = "Credit in Default", ylab = "Frequency", las = 2, cex.names = 0.75, names.arg = categories_default, mgp = c(3, 1, 0))
+```
+
+#### **HOUSING**
+
+```{r}
+# Define Categories (so emtpy gets shown as unknown)
+categories_housing <- c('yes', 'no', 'unknown')
+
+# Barplot for Housing Loans
+barplot(table(data$housing, useNA = "always"), main = "Barplot of Housing Loans", xlab = "Housing Loans", ylab = "Frequency", las = 2, cex.names = 0.75, names.arg = categories_housing, mgp = c(3, 1, 0))
+```
+
+#### **LOAN**
+
+```{r}
+# Define Categories (so emtpy gets shown as unknown)
+categories_loan <- c('yes', 'no', 'unknown')
+
+# Barplot for Personal Loans
+barplot(table(data$loan, useNA = "always"), main = "Barplot of Personal Loans", xlab = "Personal Loans", ylab = "Frequency", las = 2, cex.names = 0.75, names.arg = categories_loan, mgp = c(3, 1, 0))
+```
+
+#### **DAY OF WEEK**
+
+```{r}
+# Define Categories (for a nice order)
+categories_days <- c('mon', 'tue', 'wed', 'thu', 'fri')
+
+
+# Barplot for Day of Week
+barplot(table(data$day_of_week), main = "Barplot of Days of Week", xlab = "Days of Week", ylab = "Frequency", las = 2, cex.names = 0.75, names.arg = categories_days, mgp = c(3, 1, 0))
+```
+
+#### **MONTH**
+
+```{r}
+# Define Categories (for a nice order)
+categories_months <- c("mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec")
+
+# Barplot for Month
+barplot(table(data$month), main = "Barplot of Months", xlab = "Months", ylab = "Frequency", las = 2, cex.names = 0.75, names.arg = categories_months, mgp = c(3, 1, 0))
+```
+
+#### **CAMPAIN**
+
+```{r}
+# Histogram y = Frequency, x = Campain
+hist(data$campaign, main = "Histogram of Number of Contacts during this Campain", xlab = "Number of Contacts", breaks = unique(data$campaign), freq = TRUE)
+
+# Histogram y = Density, x = Campain
+hist(data$campaign, main = "Histogram of Number of Contacts during this Campain", xlab = "Number of Contacts", breaks = unique(data$campaign), freq = FALSE)
+
+# Boxplot for Campain
+boxplot(data$campaign, horizontal = TRUE, main = "Boxplot of Number of Contacts during this Campain", xlab = "Number of Contacts")
+```
+
+#### **PREVIOUS**
+
+```{r}
+# Histogram y = Frequency, x = Previous
+hist(data$previous, main = "Histogram of Number of Contacts before this Campain", xlab = "Number of Previous Contacts", breaks = unique(data$previous), freq = TRUE)
+
+# Histogram y = Density, x = Previous
+hist(data$previous, main = "Histogram of Number of Contacts before this Campain", xlab = "Number of Previous Contacts", breaks = unique(data$previous), freq = FALSE)
+
+# Boxplot for Previous
+boxplot(data$previous, horizontal = TRUE, main = "Boxplot of Number of Contacts before this Campain", xlab = "Number of Previous Contacts")
+```
+
+#### **POUTCOME**
+
+```{r}
+# Define Categories (for a nice order)
+categories_poutcome <- c("success", "failure", "nonexistent")
+
+# Barplot for Poutcome
+barplot(table(data$poutcome), main = "Barplot of Outcome of the previous marketing campaign", xlab = "Outcome", ylab = "Frequency", las = 2, cex.names = 0.75, names.arg = categories_poutcome, mgp = c(3, 1, 0))
+```
+
+#### **Emp.var.rate =** Employment variation rate – quarterly indicator
+
+```{r}
+# Histogram y = Frequency, x = Emp.var.rate 
+hist(data$emp.var.rate, main = "Histogram of Employment variation rate", xlab = "Rate", breaks = unique(data$emp.var.rate), freq = TRUE)
+
+# Histogram y = Density, x = Emp.var.rate 
+hist(data$emp.var.rate, main = "Histogram of Employment variation rate", xlab = "Rate", breaks = unique(data$emp.var.rate), freq = FALSE)
+
+# Boxplot for Emp.var.rate 
+boxplot(data$emp.var.rate, horizontal = TRUE, main = "Boxplot of Employment variation rate", xlab = "Rate")
+```
+
+#### **Cons.price.idx =** Consumer price index – monthly indicator
+
+```{r}
+# Histogram y = Frequency, x = Cons.price.idx 
+hist(data$cons.price.idx, main = "Histogram of Consumer price index", xlab = "Index", breaks = unique(data$cons.price.idx), freq = TRUE)
+
+# Histogram y = Density, x = Cons.price.idx 
+hist(data$cons.price.idx, main = "Histogram of Consumer price index", xlab = "Index", breaks = unique(data$cons.price.idx), freq = FALSE)
+
+# Boxplot for Cons.price.idx
+boxplot(data$cons.price.idx, horizontal = TRUE, main = "Boxplot of Consumer price index", xlab = "Index")
+```
+
+#### **Cons.conf.idx =** Consumer confidence index – monthly indicator
+
+```{r}
+# Histogram y = Frequency, x = Cons.conf.idx 
+hist(data$cons.conf.idx, main = "Histogram of Consumer confidence index", xlab = "Index", breaks = unique(data$cons.conf.idx), freq = TRUE)
+
+# Histogram y = Density, x = Cons.conf.idx 
+hist(data$cons.conf.idx, main = "Histogram of Consumer confidence index", xlab = "Index", breaks = unique(data$cons.conf.idx), freq = FALSE)
+
+# Boxplot for Cons.price.idx
+boxplot(data$cons.conf.idx, horizontal = TRUE, main = "Boxplot of Consumer confidence index", xlab = "Index")
+```
+
+#### **Euribor3m =** Euribor 3-month rate – daily indicator
+
+```{r}
+# Histogram y = Frequency, x = Euribor3m  
+hist(data$euribor3m, main = "Histogram of Euribor 3-month rate", xlab = "Rate", breaks = unique(data$euribor3m), freq = TRUE)
+
+# Histogram y = Density, x = Euribor3m  
+hist(data$euribor3m, main = "Histogram of Euribor 3-month rate", xlab = "Rate", breaks = unique(data$euribor3m), freq = FALSE)
+
+# Boxplot for Euribor3m 
+boxplot(data$euribor3m, horizontal = TRUE, main = "Boxplot of Euribor 3-month rate", xlab = "Rate")
+```
+
+#### **Y** - Target Variable: Has the client subscribed a term deposit
+
+```{r}
+# Barplot for Y
+barplot(table(data$y), main = "Barplot of Subscription made", xlab = "Subscription made", ylab = "Frequency", las = 2, cex.names = 0.75, mgp = c(3, 1, 0))
+```
+
+##### **Outcome Imbalance**
+
+Observe that the dataset predicted outcome (y) is skewed towards ‘no’ with over 88.7%.
+
+```{r}
+prop.table(table(data$y))
+```
+
+### **Relationships between variables:** 
+
+#### previous & poutcome
+
+```{r}
+# Reorder levels of poutcome
+data$poutcome <- factor(data$poutcome, levels = c("nonexistent", "success", "failure"))
+
+# Create the scatter plot
+ggplot(data, aes(x = poutcome, y = previous)) +
+  geom_jitter(width = 0.3, height = 0) +  # Add jitter to prevent overlapping
+  labs(title = "Scatter Plot of Poutcome and Previous", x = "Poutcome", y = "Previous Contacts")
+```
+
+##### previous = 0 & poutcome = nonexistent
+
+```{r}
+# Relationship between previous = 0 & poutcome = nonexistent
+# Number of previous = 0
+count_previous_0 <- sum(data$previous == 0) 
+count_previous_0
+
+# Number of poutcome ="nonexistent"
+count_poutcome_nonexistent <- sum(data$poutcome == "nonexistent") 
+count_poutcome_nonexistent
+
+# Number of previous = 0 & poutcome = "nonexistent" at the same time
+count <- sum(data$poutcome[data$previous == 0] == "nonexistent") 
+count
+
+# check if relationship is true (all numbers are equal)
+realtionship <- (count_previous_0 == count_poutcome_nonexistent) && +
+  (count_previous_0 == count) && (count_poutcome_nonexistent == count)
+realtionship
+```
+
+### **Age Distribution vs Marital Status That Subscribes Term Deposit**
+
+*The bulk of clients are married or divorced.* Sharp drop of clients above age 60 with marital status ‘divorced’ and ‘married’. \*Single clients drop in numbers above age 30-40.
+
+```{r}
+ggplot(data, aes(x=age, fill=marital)) + 
+  geom_histogram(binwidth = 2, alpha=0.7, na.rm = TRUE) +
+  facet_grid(cols = vars(y)) +
+  expand_limits(x=c(0,100)) +
+  scale_x_continuous(breaks = seq(0,100,10)) +
+  ggtitle("Age Distribution by Marital Status")
+```
+
+### **Age vs Subscription**
+
+Most clients that subscribe are between age 25 to 55. Mean age for all clients is at age 40 years.
+
+```{r}
+mean(data$age)
+
+mu <- data %>% group_by(y) %>% summarize(grp.mean=mean(age))
+
+ggplot (data, aes(x=age)) + 
+  geom_histogram(color = "blue", fill = "blue", binwidth = 5) +
+  facet_grid(cols=vars(y)) + 
+  ggtitle('Age Distribution by Subscription (red line is mean') + ylab('Count') + xlab('Age') +
+  scale_x_continuous(breaks = seq(0,100,5)) +
+  geom_vline(data=mu, aes(xintercept=grp.mean), color="red", linetype="dashed")
+```
+
+### **Education vs Subscription**
+
+Having higher education is seen to contribute to higher subscription of term deposit. Most clients who subscribe are from ‘high school’ and ‘university degree’ education levels.
+
+```{r}
+# Define Categories (so emtpy gets shown as unknown)
+categories_education <- c('illiterate', 'basic.4y', 'basic.y', 'basic.9y', 'high.school', 'professional.course', 'university.degree', 'unknown')
+
+ggplot(data = data, aes(x=factor(education, categories_education), fill=y)) +
+         geom_bar(na.rm = TRUE) +
+         ggtitle("Term Deposit Subscription based on Education Level") +
+         xlab(" Education Level") +
+         guides(fill=guide_legend(title="Subscription of Term Deposit")) +
+         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+The following table presents the number of subscriptions per education level. In total, 4640 clients have subscribed. The 'percentage' column showcases the proportion of subscribed clients relative to the total number of subscriptions, expressed as a percentage. Notably, individuals with higher education levels exhibit higher subscription rates: high school (22.22%), professional course (12.82%), and university degree (35.99%).
+
+```{r}
+# categories to have the correct order
+categories_education <- c('illiterate', 'basic.4y', 'basic.6y', 'basic.9y', 'high.school', 'professional.course', 'university.degree', 'unknown')
+
+# Filtering the data to obtain only customers with a subscription
+subscribed_customers <- data[data$y == "yes", ]
+
+# Total number of subscribed customers
+total_subscribed <- nrow(subscribed_customers)
+
+# Grouping data by education level & counting subscribed customers in each category
+education_counts <- subscribed_customers %>%
+  group_by(education) %>%
+  summarise(subscribed_customers = n())
+
+# Calculating percentage of subscribed customers for each education level
+education_counts <- education_counts %>%
+  mutate(percentage = round(subscribed_customers / total_subscribed * 100, 2))
+
+# Sorting data according to the order of categories
+education_counts <- education_counts[order(match(education_counts$education, categories_education)), ]
+
+# Printing results
+print(education_counts)
+```
+
+The table below displays the number of subscriptions and total clients across different education levels. The 'percentage' column indicates the proportion of subscribed clients per education level relative to the total number of clients per education level, presented as a percentage. Notably, individuals with higher education levels exhibit higher subscription rates, such as those with a high school education (10.84%), professional course (11.35%), and university degree (13.72%).
+
+However, it's essential to consider the context. For instance, the illiterate group shows a high subscription percentage (22.22%), but this is based on a small sample size of only 18 out of 41188 clients contacted. Similarly, the 14.50% subscription rate among clients with an unknown education level appears relatively high, yet this is based on a relatively small group of 1731 clients with an unknown education level.
+
+```{r}
+# Define order of education categories
+categories_education <- c('illiterate', 'basic.4y', 'basic.6y', 'basic.9y', 'high.school', 'professional.course', 'university.degree', 'unknown')
+
+# Filter data to obtain only customers with successful subscriptions
+subscribed_customers <- data[data$y == "yes", ]
+
+# Calculate total number of subscribed customers
+total_subscribed <- nrow(subscribed_customers)
+
+# Group data by education level & count subscribed customers in each category
+subscription_counts <- subscribed_customers %>%
+  group_by(education) %>%
+  summarise(subscribed = n())
+
+# Calculate total number of customers per education level
+total_clients <- data %>%
+  group_by(education) %>%
+  summarise(total = n())
+
+# Merge the two datasets
+subscription_summary <- merge(subscription_counts, total_clients, by = "education", all = TRUE)
+
+# Calculate percentage of subscriptions relative to total number of customers
+subscription_summary$percentage <- round(with(subscription_summary, subscribed / total * 100), 2)
+
+# Adjust order of rows based on predefined education categories
+subscription_summary <- subscription_summary %>%
+  arrange(match(education, categories_education))
+
+# Print results
+print(subscription_summary)
+```
+
+### **Subscription based on Number of Contact during Campaign**
+
+It can be observed from barchart that there will be nearly no subscription beyond 10 contact during the campaign. Future campaign could improve resource utilization by setting limits to contacts during a campaign. Future campaigns can focus on first 3 contacts as it will have higher subscription rate.
+
+```{r}
+ggplot(data=data, aes(x=campaign, fill=y))+
+  geom_histogram(na.rm = TRUE, bins = 30)+
+  ggtitle("Subscription based on Number of Contacts during the Campaign")+
+  xlab("Number of Contacts during the Campaign")+
+  xlim(c(min=1,max=25)) +
+  guides(fill=guide_legend(title="Subscription of Term Deposit"))
+
+```
+
+```{r}
+# Grouping data by campaign number and counting customers in each category
+campaign_counts <- data %>%
+  group_by(campaign) %>%
+  summarise(count_campaign = n(),
+            count_y_yes = sum(y == "yes"),
+            count_y_no = sum(y == "no"))
+
+# Output results
+print(campaign_counts)
+
+```
+
+xxxxxx hier weiter machen
+
+## 4. Verify data quality: How clean/dirty is the data? Document any quality issues.
+
+17 variables (columns) and 41’188 observations (rows)
+
+There is some missing variables (balance), and values, also wome rows are duplicated.
+
+-\> missing variable balance: is that on purpose?
+
+-\> missing values: some/all should be filled with default value (example mean).
+
+-\> delete duplicated rows.
+
+Types: chr, int, and num
+
+-\> some types might need to be changed e.g. as.factor(), ex. : housing : Factor w/ 2 levels "no","yes": 1 2
