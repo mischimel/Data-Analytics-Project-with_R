@@ -24,6 +24,8 @@ library(gridExtra)  # arranging ggplot in grid
 library(rpart)      # decision tree
 library(rpart.plot) # decision tree plotting
 library(caTools)    # split 
+library(graphics)
+library(GGally)
 ```
 
 ## 1. Collect initial data: Acquire the necessary data and (if necessary) load it into your analysis tool.
@@ -332,10 +334,20 @@ barplot(table(data$y), main = "Barplot of Subscription made", xlab = "Subscripti
 Observe that the dataset predicted outcome (y) is skewed towards ‘no’ with over 88.7%.
 
 ```{r}
-prop.table(table(data$y))
+prop.table(table(data$y, useNA = "always"))
+
+table(data$y, useNA = "always")
+
 ```
 
 ### **Relationships between variables:**
+
+Would be a good starting point, maybe when all is binarized.
+
+```{r}
+#pairs(data) # not working, because not only numeric values
+#ggpairs(data)
+```
 
 #### previous & poutcome
 
@@ -371,7 +383,7 @@ realtionship <- (count_previous_0 == count_poutcome_nonexistent) && +
 realtionship
 ```
 
-### **Age Distribution vs Marital Status That Subscribes Term Deposit**
+#### **Age Distribution vs Marital Status That Subscribes Term Deposit**
 
 *The bulk of clients are married or divorced.* Sharp drop of clients above age 60 with marital status ‘divorced’ and ‘married’. \*Single clients drop in numbers above age 30-40.
 
@@ -384,7 +396,7 @@ ggplot(data, aes(x=age, fill=marital)) +
   ggtitle("Age Distribution by Marital Status")
 ```
 
-### **Age vs Subscription**
+#### **Age vs Subscription**
 
 Most clients that subscribe are between age 25 to 55. Mean age for all clients is at age 40 years.
 
@@ -401,7 +413,7 @@ ggplot (data, aes(x=age)) +
   geom_vline(data=mu, aes(xintercept=grp.mean), color="red", linetype="dashed")
 ```
 
-### **Education vs Subscription**
+#### **Education vs Subscription**
 
 Having higher education is seen to contribute to higher subscription of term deposit. Most clients who subscribe are from ‘high school’ and ‘university degree’ education levels.
 
@@ -483,7 +495,7 @@ subscription_summary <- subscription_summary %>%
 print(subscription_summary)
 ```
 
-### **Subscription based on Number of Contact during Campaign**
+#### **Subscription based on Number of Contact during Campaign**
 
 It can be observed from barchart that there will be nearly no subscription beyond 10 contact during the campaign. Future campaign could improve resource utilization by setting limits to contacts during a campaign. Future campaigns can focus on first 3 contacts as it will have higher subscription rate.
 
@@ -510,13 +522,279 @@ print(campaign_counts)
 
 ```
 
-xxxxxx hier weiter machen
+#### Deafult vs Subscription
 
-## 4. Verify data quality: How clean/dirty is the data? Document any quality issues.
+Potential imbalance only 3 with default yes. Noone with a default subscribed.
+
+```{r}
+table(data$default, useNA = "always")
+
+# Bar plot for 'default' vs 'subscription'
+ggplot(data, aes(x=default, fill=y)) +
+  geom_bar() +
+  ggtitle("Default vs. Subscription") +
+  xlab("Default") +
+  ylab("Count") +
+  guides(fill=guide_legend(title="Subscription of Term Deposit"))
+
+# Group data by 'default' and 'y' and count the occurrences
+default_subscription_counts <- data %>%
+  group_by(default, y) %>%
+  summarise(count = n()) %>%
+  mutate(percent_category = count / sum(count) * 100,
+         percent_all = count / nrow(data) * 100)
+
+# Print the results
+print(default_subscription_counts)
+
+```
+
+#### Housing vs Subscription
+
+Clients that have a housing loan tend more to do a subscription (housing yes 6.08%, housing no 4.9% of all clients, and within the categories housing: yes 11.6% and no 10.9% did a sunscription).
+
+```{r}
+table(data$housing, useNA = "always")
+
+# Bar plot for 'housing' vs 'subscription'
+ggplot(data, aes(x=housing, fill=y)) +
+  geom_bar() +
+  ggtitle("Housing vs. Subscription") +
+  xlab("Housing") +
+  ylab("Count") +
+  guides(fill=guide_legend(title="Subscription of Term Deposit"))
+
+# Group data by 'housing' and 'y' and count the occurrences
+housing_subscription_counts <- data %>%
+  group_by(housing, y) %>%
+  summarise(count = n()) %>%
+  mutate(percent_category = count / sum(count) * 100,
+         percent_all = count / nrow(data) * 100)
+
+# Print the results
+print(housing_subscription_counts)
+```
+
+#### Loan vs Subscription
+
+Much more clients do not have a loan, and these also tend to more often a subscription.
+
+```{r}
+table(data$loan, useNA = "always")
+
+# Bar plot for 'loan' vs 'subscription'
+ggplot(data, aes(x=loan, fill=y)) +
+  geom_bar() +
+  ggtitle("Loan vs. Subscription") +
+  xlab("Loan") +
+  ylab("Count") +
+  guides(fill=guide_legend(title="Subscription of Term Deposit"))
+
+# Group data by 'loan' and 'y' and count the occurrences
+loan_subscription_counts <- data %>%
+  group_by(loan, y) %>%
+  summarise(count = n()) %>%
+  mutate(percent_category = count / sum(count) * 100,
+         percent_all = count / nrow(data) * 100)
+
+# Print the results
+print(loan_subscription_counts)
+```
+
+#### Matrix emp.var.rate, cons.price.idx, cons.conf.idx, euribor3m
+
+```{r}
+data_select <- data %>% select(emp.var.rate, cons.price.idx, cons.conf.idx, euribor3m)
+pairs(data_select)
+```
+
+#### emp.var.rate vs subscription
+
+```{r}
+# Boxplot for emp.var.rate vs subscription
+ggplot(data, aes(x = y, y = emp.var.rate)) +
+  geom_boxplot() +
+  ggtitle("Employment Variation Rate vs Subscription") +
+  xlab("Subscription of Term Deposit") +
+  ylab("Employment Variation Rate")
+```
+
+#### cons.price.idx vs subscription
+
+```{r}
+# Boxplot for cons.price.idx vs subscription
+ggplot(data, aes(x = y, y = cons.price.idx)) +
+  geom_boxplot() +
+  ggtitle("Consumer Price Index vs Subscription") +
+  xlab("Subscription of Term Deposit") +
+  ylab("Consumer Price Index")
+```
+
+#### cons.conf.idx vs subscription
+
+```{r}
+# Boxplot for cons.conf.idx vs subscription
+ggplot(data, aes(x = y, y = cons.conf.idx)) +
+  geom_boxplot() +
+  ggtitle("Consumer Confidence Index vs Subscription") +
+  xlab("Subscription of Term Deposit") +
+  ylab("Consumer Confidence Index")
+```
+
+#### euribor3m vs subscription
+
+```{r}
+# Boxplot for euribor3m vs subscription
+ggplot(data, aes(x = y, y = euribor3m)) +
+  geom_boxplot() +
+  ggtitle("Euribor 3 Month Rate vs Subscription") +
+  xlab("Subscription of Term Deposit") +
+  ylab("Euribor 3 Month Rate")
+```
+
+#### Satterplots of emp.var.rate
+
+emp.var.rate vs cons.price.idx:
+
+emp.var.rate vs cons.conf.idx:
+
+emp.var.rate vs euribor3m:
+
+```{r}
+# Scatterplot for emp.var.rate vs cons.price.idx
+ggplot(data, aes(x = emp.var.rate, y = cons.price.idx, color = y)) +
+  geom_point() +
+  ggtitle("Scatter Plot of Employment Variation Rate vs Consumer Price Index") +
+  xlab("Employment Variation Rate") +
+  ylab("Consumer Price Index") +
+  scale_color_discrete(name = "Subscription of Term Deposit")
+
+# Scatterplot for emp.var.rate vs cons.conf.idx
+ggplot(data, aes(x = emp.var.rate, y = cons.conf.idx, color = y)) +
+  geom_point() +
+  ggtitle("Scatter Plot of Employment Variation Rate vs Consumer Confidence Index") +
+  xlab("Employment Variation Rate") +
+  ylab("Consumer Confidence Index") +
+  scale_color_discrete(name = "Subscription of Term Deposit")
+
+# Scatterplot for emp.var.rate vs euribor3m
+ggplot(data, aes(x = emp.var.rate, y = euribor3m, color = y)) +
+  geom_point() +
+  ggtitle("Scatter Plot of Employment Variation Rate vs Euribor 3 Month Rate") +
+  xlab("Employment Variation Rate") +
+  ylab("Euribor 3 Month Rate") +
+  scale_color_discrete(name = "Subscription of Term Deposit")
+
+```
+
+#### Satterplots of cons.price.idx 
+
+cons.price.idx vs emp.var.rate:
+
+cons.price.idx vs cons.conf.idx:
+
+cons.conf.idx vs euribor3m:
+
+```{r}
+# Scatterplot for cons.price.idx vs emp.var.rate
+ggplot(data, aes(x = cons.price.idx, y = emp.var.rate , color = y)) +
+  geom_point() +
+  ggtitle("Scatter Plot of Consumer Price Index vs Employment Variation Rate") +
+  xlab("Consumer Price Index") +
+  ylab("Employment Variation Rate") +
+  scale_color_discrete(name = "Subscription of Term Deposit")
+
+# Scatterplot for cons.price.idx vs cons.conf.idx
+ggplot(data, aes(x = cons.price.idx, y = cons.conf.idx, color = y)) +
+  geom_point() +
+  ggtitle("Scatter Plot of Consumer Price Index vs Consumer Confidence Index") +
+  xlab("Consumer Price Index") +
+  ylab("Consumer Confidence Index") +
+  scale_color_discrete(name = "Subscription of Term Deposit")
+
+# Scatterplot for cons.conf.idx vs euribor3m
+ggplot(data, aes(x = cons.price.idx, y = euribor3m, color = y)) +
+  geom_point() +
+  ggtitle("Scatter Plot of Consumer Price Index vs Euribor 3 Month Rate") +
+  xlab("Consumer Price Index") +
+  ylab("Euribor 3 Month Rate") +
+  scale_color_discrete(name = "Subscription of Term Deposit")
+```
+
+#### Satterplots of cons.conf.idx
+
+cons.conf.idx vs emp.var.rate:
+
+cons.conf.idx vs cons.price.idx:
+
+cons.conf.idx vs euribor3m:
+
+```{r}
+# Scatterplot for cons.conf.idx vs emp.var.rate
+ggplot(data, aes(x = cons.conf.idx, y = emp.var.rate , color = y)) +
+  geom_point() +
+  ggtitle("Scatter Plot of Consumer Confidence Index vs Employment Variation Rate") +
+  xlab("Consumer Confidence Index") +
+  ylab("Employment Variation Rate") +
+  scale_color_discrete(name = "Subscription of Term Deposit")
+
+# Scatterplot for cons.conf.idx vs cons.price.idx
+ggplot(data, aes(x = cons.conf.idx, y = cons.price.idx, color = y)) +
+  geom_point() +
+  ggtitle("Scatter Plot of Consumer Confidence Index vs Consumer Price Index") +
+  xlab("Consumer Confidence Index") +
+  ylab("Consumer Price Index") +
+  scale_color_discrete(name = "Subscription of Term Deposit")
+
+# Scatterplot for cons.conf.idx vs euribor3m
+ggplot(data, aes(x = cons.conf.idx, y = euribor3m, color = y)) +
+  geom_point() +
+  ggtitle("Scatter Plot of Consumer Confidence Index vs Euribor 3 Month Rate") +
+  xlab("Consumer Confidence Index") +
+  ylab("Euribor 3 Month Rate") +
+  scale_color_discrete(name = "Subscription of Term Deposit")
+```
+
+#### Scatterplots of Euribor3m
+
+euribor3m vs emp.var.rate:
+
+euribor3m vs cons.price.idx:
+
+euribor3m vs cons.conf.idx:
+
+```{r}
+# Scatterplot for euribor3m vs emp.var.rate
+ggplot(data, aes(x = euribor3m , y = emp.var.rate , color = y)) +
+  geom_point() +
+  ggtitle("Scatter Plot of Euribor 3 Month Rate vs Employment Variation Rate") +
+  xlab("Euribor 3 Month Rate") +
+  ylab("Employment Variation Rate") +
+  scale_color_discrete(name = "Subscription of Term Deposit")
+
+# Scatterplot for euribor3m vs cons.price.idx
+ggplot(data, aes(x = euribor3m, y = cons.price.idx, color = y)) +
+  geom_point() +
+  ggtitle("Scatter Plot of Euribor 3 Month Rate vs Consumer Price Index") +
+  xlab("Euribor 3 Month Rate") +
+  ylab("Consumer Price Index") +
+  scale_color_discrete(name = "Subscription of Term Deposit")
+
+# Scatterplot for euribor3m vs cons.conf.idx
+ggplot(data, aes(x = euribor3m, y = cons.conf.idx, color = y)) +
+  geom_point() +
+  ggtitle("Scatter Plot of Euribor 3 Month Rate vs Consumer Confidence Index") +
+  xlab("Euribor 3 Month Rate") +
+  ylab("Consumer Confidence Index") +
+  scale_color_discrete(name = "Subscription of Term Deposit")
+
+```
+
+## 4. Verify data quality: How clean/dirty is the data? Document any quality issues.issues.
 
 17 variables (columns) and 41’188 observations (rows)
 
-There is some missing variables (balance), and values, also wome rows are duplicated.
+There is some missing variables (balance), and values, also some rows are duplicated.
 
 -\> missing variable balance: is that on purpose?
 
