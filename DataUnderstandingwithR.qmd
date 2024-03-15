@@ -687,7 +687,7 @@ ggplot(data, aes(x = emp.var.rate, y = euribor3m, color = y)) +
 
 ```
 
-#### Satterplots of cons.price.idx 
+#### Satterplots of cons.price.idx
 
 cons.price.idx vs emp.var.rate:
 

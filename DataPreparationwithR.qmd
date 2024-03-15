@@ -1,0 +1,19 @@
+---
+title: "Data Preparation"
+format: docx
+prefer-html: true
+toc: true
+toc-depth: 5
+editor: visual
+warning: false
+---
+
+## Remove dublicates
+
+Check which missing values can be deleted (not default)
+
+Fill in missing values
+
+Calculate year (Euribor)
+
+take together categories
